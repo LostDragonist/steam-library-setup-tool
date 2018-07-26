@@ -12,6 +12,7 @@ import re
 import tkinter as tk
 import tkinter.filedialog as filedialog
 import tkinter.messagebox as messagebox
+import winreg
 
 info_t = collections.namedtuple( "info_t", ( "key", "value" ) )
 
@@ -29,10 +30,20 @@ class SteamLibrarySetupTool( tk.Frame ):
         # Initialize tkinter
         tk.Frame.__init__( self, master )
 
-        # Prompt user for location of steam.exe
-        dialog = filedialog.Open( self, defaultextension='.exe', initialdir=os.path.join( "C:\\", "Program Files (x86)", "Steam" ),
-                                  initialfile="Steam.exe", title="Select Steam.exe", filetypes=(("Steam", "Steam.exe"),) )
-        self.steam_path = dialog.show().replace( "/", "\\" )
+        # Try to read the registry for the location of Steam
+        try:
+            with winreg.OpenKey( winreg.HKEY_CURRENT_USER, "Software\\Valve\\Steam" ) as key:
+                value = winreg.QueryValueEx( key, "SteamExe" )
+                self.steam_path = value[0].replace( "/", "\\" )
+        except:
+            self.steam_path = ''
+
+        # Prompt user for location of steam.exe if the registry wasn't useful
+        if self.steam_path == '' or not os.path.exists( self.steam_path ):
+            dialog = filedialog.Open( self, defaultextension='.exe', initialdir=os.path.join( "C:\\", "Program Files (x86)", "Steam" ),
+                                    initialfile="Steam.exe", title="Select Steam.exe", filetypes=(("Steam", "Steam.exe"),) )
+            self.steam_path = dialog.show().replace( "/", "\\" )
+
         if self.steam_path == '':
             messagebox.showerror( "Error", "Could not find Steam.exe" )
             raise ValueError( "Could not find steam.exe" )
