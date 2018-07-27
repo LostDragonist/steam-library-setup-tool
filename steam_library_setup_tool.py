@@ -210,17 +210,22 @@ class SteamLibrarySetupTool( tk.Frame ):
             self.entryLabels.append( tk.Label( self, text=str( i ) ) )
             self.entryLabels[ -1 ].grid( row=i+1, column=0 )
 
+            # Github issue #1: Deleting libraries that already exist doesn't work for some reason.
+            #                  The workaround for now is disabling the ability to modify or delete
+            #                  those libraries.
+
             # i == 0 as the base Steam directory can not be modified
-            self.entryWidgets.append( tk.Entry( self, textvariable=entry_var, state=tk.DISABLED if i == 0 else tk.NORMAL, width=100 ) )
+            #self.entryWidgets.append( tk.Entry( self, textvariable=entry_var, state=tk.DISABLED if i == 0 else tk.NORMAL, width=100 ) )
+            self.entryWidgets.append( tk.Entry( self, textvariable=entry_var, state=tk.DISABLED, width=100 ) )
             self.entryWidgets[ -1 ].grid( row=i+1, column=1 )
 
             # i > 0 as the first row is the base Steam directory and can not be modified
-            if i > 0:
-                self.browseRowButtons.append( tk.Button( self, text="Browse...", command=lambda row=i: self.browseRow( row ) ) )
-                self.browseRowButtons[ -1 ].grid( row=i+1, column=SteamLibrarySetupTool.COL_BROWSE )
-
-                self.deleteRowButtons.append( tk.Button( self, text="Delete Row", command=lambda row=i: self.deleteRow( row ) ) )
-                self.deleteRowButtons[ -1 ].grid( row=i+1, column=SteamLibrarySetupTool.COL_DELETE )
+            #if i > 0:
+            #    self.browseRowButtons.append( tk.Button( self, text="Browse...", command=lambda row=i: self.browseRow( row ) ) )
+            #    self.browseRowButtons[ -1 ].grid( row=i+1, column=SteamLibrarySetupTool.COL_BROWSE )
+            #
+            #    self.deleteRowButtons.append( tk.Button( self, text="Delete Row", command=lambda row=i: self.deleteRow( row ) ) )
+            #    self.deleteRowButtons[ -1 ].grid( row=i+1, column=SteamLibrarySetupTool.COL_DELETE )
 
         # Create the general buttons
         self.acceptButton = tk.Button( self, text="Accept", command=self.acceptEvent )
