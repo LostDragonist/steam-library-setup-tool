@@ -5,9 +5,13 @@ The primary use of this tool is to easily add library folders on drives that alr
 
 Dependencies:
 
-* Python 3.6.6+
-* Pyinstaller 3.3.1+
+* Python 3.9.5
+* Pyinstaller 4.3
 
 To release:
 
-$ py -3.6 release.py
+$ py -3.9 release.py
+
+External code used:
+
+  * [vdf 3.4](https://pypi.org/project/vdf/) by Rossen Georgiev

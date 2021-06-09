@@ -12,6 +12,7 @@ import re
 import tkinter as tk
 import tkinter.filedialog as filedialog
 import tkinter.messagebox as messagebox
+import vdf
 import winreg
 
 info_t = collections.namedtuple( "info_t", ( "key", "value" ) )
@@ -57,6 +58,7 @@ class SteamLibrarySetupTool( tk.Frame ):
         # Parse libraryfolders.vdf
         self.library_info = {}
         self.library_folders = []
+        self.new_format = False
         self.parseLibraryInfo()
 
         # Initialize GUI stuff
@@ -75,49 +77,29 @@ class SteamLibrarySetupTool( tk.Frame ):
         self.createWidgets()
 
     def parseLibraryInfo( self ):
-        parent = ""
-        next_parent = ""
-        with open( self.library_vdf_path, 'r' ) as f:
-            for line in f:
-                # Match for the parent item
-                match = re.match( "^\"(.*)\"$", line )
-                if match:
-                    next_parent = match.group( 1 )
+        info = vdf.load( open( self.library_vdf_path, 'r' ) )
+
+        # NEW FORMAT
+        if 'libraryfolders' in info:
+            self.new_format = True
+            for key in info['libraryfolders']:
+                try:
+                    folder_id = int( key )
+                    self.library_folders.append( info_t( key=key, value=info['libraryfolders'][key]['path'] ) )
+                except ValueError:
                     continue
 
-                # Match for opening brace
-                match = re.match( "^{$", line )
-                if match:
-                    parent = next_parent
-                    next_parent = ""
+        # OLD FORMAT
+        elif 'LibraryFolders' in info:
+            for key in info['LibraryFolders']:
+                try:
+                    folder_id = int( key )
+                    self.library_folders.append( info_t( key=key, value=info['LibraryFolders'][key] ) )
+                except ValueError:
                     continue
 
-                # Match for closing brace
-                match = re.match( "^}$", line )
-                if match:
-                    parent = ""
-                    continue
-
-                # Match for key and value
-                match = re.match( "^\\s*\"(.*)\"\\s*\"(.*)\"$", line )
-                if match:
-                    if parent not in self.library_info:
-                        self.library_info[ parent ] = []
-                    self.library_info[ parent ].append( info_t( key=match.group( 1 ), value=match.group( 2 ) ) )
-                    continue
-
-        # Find the library folders
-        for info in self.library_info[ "LibraryFolders" ]:
-            try:
-                folder_id = int( info.key )
-                self.library_folders.append( info )
-            except ValueError:
-                pass
-
-        # Remove the library folders from the library info
-        # They'll be added back in later
-        for folder in self.library_folders:
-            self.library_info[ "LibraryFolders" ].remove( folder )
+        else:
+            raise ValueError( "Unknown file format" )
 
     def writeLibraryInfo( self ):
         # Make sure directories all exist
@@ -134,9 +116,22 @@ class SteamLibrarySetupTool( tk.Frame ):
                     messagebox.showerror( "Error", "Can not proceed without creating directories" )
                     raise ValueError( "Can not proceed without creating directories" )
 
-        # Add the library folders back to the library info
-        for i, folder in enumerate( self.library_folders ):
-            self.library_info[ "LibraryFolders" ].append( info_t( key=i+1, value=folder.value.replace( "\\", "\\\\" ) ) )
+        info = vdf.load( open( self.library_vdf_path, 'r' ) )
+
+        # NEW FORMAT
+        if self.new_format:
+            for folder in self.library_folders:
+                if folder.key not in info['libraryfolders']:
+                    info['libraryfolders'][folder.key] = dict()
+                    info['libraryfolders'][folder.key]['label'] = ''
+                    info['libraryfolders'][folder.key]['mounted'] = '1'
+                    info['libraryfolders'][folder.key]['contentid'] = ''
+                info['libraryfolders'][folder.key]['path'] = folder.value
+
+        # OLD FORMAT
+        else:
+            for folder in self.library_folders:
+                info['LibraryFolders'][folder.key] = folder.value
 
         # Create a backup
         try:
@@ -150,13 +145,7 @@ class SteamLibrarySetupTool( tk.Frame ):
         # Open the new file
         restore_backup = False
         try:
-            with open( self.library_vdf_path, 'w' ) as f:
-                for parent in self.library_info:
-                    f.write( "\"{}\"\n".format( parent ) )
-                    f.write( "{\n" )
-                    for info in self.library_info[ parent ]:
-                        f.write( "\t\"{}\"\t\t\"{}\"\n".format( info.key, info.value ) )
-                    f.write( "}\n" )
+            vdf.dump( info, open( self.library_vdf_path, 'w' ), pretty=True )
         except:
             restore_backup = True
 
