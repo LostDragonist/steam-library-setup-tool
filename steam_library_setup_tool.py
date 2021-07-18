@@ -112,9 +112,6 @@ class SteamLibrarySetupTool( tk.Frame ):
                     except:
                         messagebox.showerror( "Error", "Error when creating directories" )
                         raise
-                else:
-                    messagebox.showerror( "Error", "Can not proceed without creating directories" )
-                    raise ValueError( "Can not proceed without creating directories" )
 
         info = vdf.load( open( self.library_vdf_path, 'r' ) )
 
