@@ -56,9 +56,6 @@ class SteamLibrarySetupTool(tk.Frame):
             self.steam_path)[0], "config", "libraryfolders.vdf")
         self.steamapps_library_vdf = os.path.join(os.path.split(
             self.steam_path)[0], "steamapps", "libraryfolders.vdf")
-        if not os.path.exists(self.config_library_vdf):
-            messagebox.showerror("Error", "Could not find libraryfolders.vdf")
-            raise ValueError("Could not find libraryfolders.vdf")
 
         # Read library info
         self.new_config = {}
@@ -96,7 +93,12 @@ class SteamLibrarySetupTool(tk.Frame):
         self.new_config['libraryfolders'] = dict()
 
     def parseLibraryInfo(self):
-        info = vdf.load(open(self.config_library_vdf, 'r'))
+        if os.path.exists(self.config_library_vdf):
+            info = vdf.load(open(self.config_library_vdf, 'r'))
+        elif os.path.exists(self.steamapps_library_vdf):
+            info = vdf.load(open(self.steamapps_library_vdf, 'r'))
+        else:
+            raise ValueError("Could not find a libraryfolders.vdf file.")
 
         root = list(info.keys())[0]
         for key in info[root]:
@@ -135,7 +137,8 @@ class SteamLibrarySetupTool(tk.Frame):
             if self._isint(key):
                 if self.new_config['libraryfolders'][key]['contentid'] == '':
                     # First try to find a libraryfolder.vdf in the specified path
-                    library_vdf_path = os.path.join(self.new_config['libraryfolders'][key]['path'], 'libraryfolder.vdf')
+                    library_vdf_path = os.path.join(
+                        self.new_config['libraryfolders'][key]['path'], 'libraryfolder.vdf')
                     if os.path.exists(library_vdf_path):
                         info = vdf.load(open(library_vdf_path, 'r'))
                         root = list(info.keys())[0]
@@ -160,7 +163,8 @@ class SteamLibrarySetupTool(tk.Frame):
         # Make sure directories all exist
         for key in self.new_config['libraryfolders']:
             if self._isint(key):
-                folder = os.path.join(self.new_config['libraryfolders'][key]['path'], 'steamapps')
+                folder = os.path.join(
+                    self.new_config['libraryfolders'][key]['path'], 'steamapps')
                 if not os.path.exists(folder):
                     if messagebox.askyesno("Create folders?", "Do you want to create the directory \"{}\"?".format(folder)):
                         try:
@@ -173,12 +177,14 @@ class SteamLibrarySetupTool(tk.Frame):
         # Create backups
         try:
             for f_path in [self.config_library_vdf, self.steamapps_library_vdf]:
+                if not os.path.exists(f_path):
+                    continue
+
                 with open(f_path, 'r') as f_in:
                     with open(f_path + '.bak', 'w') as f_out:
                         f_out.write(f_in.read())
-
         except:
-            if not messagebox.askyesno("Warning", "Failed to create a backup.  Proceed anyways?"):
+            if not messagebox.askyesno("Warning", "Failed to create a backup. Proceed anyways?"):
                 raise
 
         # Write the new files
@@ -194,7 +200,7 @@ class SteamLibrarySetupTool(tk.Frame):
         # Restore the backup if needed
         if restore_backup:
             messagebox.showerror(
-                "Error", "Failed to write libraryfolders.vdf.  Restoring backup...")
+                "Error", "Failed to write libraryfolders.vdf. Restoring backup...")
             try:
                 for f_path in [self.config_library_vdf, self.steamapps_library_vdf]:
                     with open(f_path + '.bak', 'r') as f_in:
@@ -202,12 +208,12 @@ class SteamLibrarySetupTool(tk.Frame):
                             f_out.write(f_in.read())
             except:
                 messagebox.showerror(
-                    "Error", "Failed to restore backup!  Sorry about that.")
+                    "Error", "Failed to restore backup! Sorry about that.")
                 raise
 
         # Tell the user stuff is done
         messagebox.showinfo(
-            "Complete", "Steam Library Setup is done.  Closing program...")
+            "Complete", "Steam Library Setup is done. Closing program...")
         self.quit()
 
     def acceptEvent(self):
@@ -235,7 +241,8 @@ class SteamLibrarySetupTool(tk.Frame):
                         if self.new_config['libraryfolders'][key]['path'].lower() == library.lower():
                             break
                     else:
-                        print("deleting folder: {}".format(self.new_config['libraryfolders'][key]['path']))
+                        print("deleting folder: {}".format(
+                            self.new_config['libraryfolders'][key]['path']))
                         del self.new_config['libraryfolders'][key]
                         break
             else:
