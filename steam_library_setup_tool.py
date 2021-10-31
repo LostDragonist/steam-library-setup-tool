@@ -63,6 +63,22 @@ class SteamLibrarySetupTool(tk.Frame):
         self.createLibraryInfo()
         self.parseLibraryInfo()
 
+        # One of the library folders should be the Steam path
+        # This can't really be deleted or modified so remove it for now
+        # and add it back in later
+        self.steam_library = None
+        self.steam_library_key = None
+        for key in self.new_config['libraryfolders']:
+            if self._isint(key):
+                if (self.new_config['libraryfolders'][key]['path'].lower() ==
+                        os.path.dirname(self.steam_path).lower()):
+                    self.steam_library_key = key
+                    self.steam_library = self.new_config['libraryfolders'][self.steam_library_key]
+                    break
+
+        if self.steam_library_key is not None:
+            del self.new_config['libraryfolders'][self.steam_library_key]
+
         # Initialize GUI stuff
         self.deleteRowButtons = []
         self.browseRowButtons = []
@@ -70,7 +86,11 @@ class SteamLibrarySetupTool(tk.Frame):
         self.entryWidgets = []
 
         self.entryValues = [tk.StringVar()]
-        self.entryValues[0].set(self.steam_path.replace("\\\\", "\\"))
+        try:
+            self.entryValues[0].set(self.steam_library['path'])
+        except TypeError:
+            messagebox.showerror("Error", "Steam doesn't have a library for its own install?! Try restarting Steam?")
+            raise TypeError("Steam doesn't have a library for its own install?! Try restarting Steam?")
         for key in self.new_config['libraryfolders']:
             if self._isint(key):
                 self.entryValues.append(tk.StringVar())
@@ -98,6 +118,7 @@ class SteamLibrarySetupTool(tk.Frame):
         elif os.path.exists(self.steamapps_library_vdf):
             info = vdf.load(open(self.steamapps_library_vdf, 'r'))
         else:
+            messagebox.showerror("Error", "Could not find a libraryfolders.vdf file.")
             raise ValueError("Could not find a libraryfolders.vdf file.")
 
         root = list(info.keys())[0]
@@ -123,6 +144,7 @@ class SteamLibrarySetupTool(tk.Frame):
 
                 # WTF
                 else:
+                    messagebox.showerror("Error", "Unknown file format")
                     raise ValueError("Unknown file format")
 
             else:
@@ -222,7 +244,7 @@ class SteamLibrarySetupTool(tk.Frame):
         # Parse the new directories list
         for i, entry in enumerate(self.entryValues):
             # Skip the base Steam directory
-            if i == 0:
+            if self.steam_library_key is not None and i == 0:
                 continue
 
             # Skip empty rows
@@ -231,6 +253,7 @@ class SteamLibrarySetupTool(tk.Frame):
                 continue
 
             listed_libraries.append(value)
+
 
         # See if any libraries need to be deleted
         something_to_delete = True
@@ -247,6 +270,14 @@ class SteamLibrarySetupTool(tk.Frame):
                         break
             else:
                 something_to_delete = False
+
+        # Add the original Steam library in if it's present (and it should be!)
+        if self.steam_library_key is not None:
+            # Make sure we're not killing something that already exists
+            if self.new_config['libraryfolders'].get(self.steam_library_key) is not None:
+                messagebox.showerror("Error", "Expected key {} to be unused!".format(self.steam_library_key))
+                raise ValueError("Expected key {} to be unused!".format(self.steam_library_key))
+            self.new_config['libraryfolders'][self.steam_library_key] = self.steam_library
 
         # See if there are new libraries
         for library in listed_libraries:
@@ -296,12 +327,12 @@ class SteamLibrarySetupTool(tk.Frame):
 
             # i == 0 as the base Steam directory can not be modified
             self.entryWidgets.append(tk.Entry(
-                self, textvariable=entry_var, state=tk.DISABLED if i == 0 else tk.NORMAL, width=100))
+                self, textvariable=entry_var, state=tk.DISABLED if self.steam_library_key is not None and i == 0 else tk.NORMAL, width=100))
             #self.entryWidgets.append( tk.Entry( self, textvariable=entry_var, state=tk.DISABLED, width=100 ) )
             self.entryWidgets[-1].grid(row=i+1, column=1)
 
             # i > 0 as the first row is the base Steam directory and can not be modified
-            if i > 0:
+            if self.steam_library_key is not None and i > 0:
                 self.browseRowButtons.append(
                     tk.Button(self, text="Browse...", command=lambda row=i: self.browseRow(row)))
                 self.browseRowButtons[-1].grid(row=i+1,
