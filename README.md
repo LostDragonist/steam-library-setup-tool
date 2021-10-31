@@ -5,12 +5,12 @@ The primary use of this tool is to easily add library folders on drives that alr
 
 Dependencies:
 
-* Python 3.9.5
-* Pyinstaller 4.3
+* Python 3.10.0
+* Pyinstaller 4.6
 
 To release:
 
-$ py -3.9 release.py
+$ py -3.10 release.py
 
 External code used:
 

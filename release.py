@@ -6,7 +6,7 @@ import winreg
 SCRIPT_NAME = "steam_library_setup_tool"
 
 # Find the location of Python 3.6
-with winreg.OpenKey( winreg.HKEY_CURRENT_USER, "Software\\Python\\PythonCore\\3.9\\InstallPath" ) as key:
+with winreg.OpenKey( winreg.HKEY_CURRENT_USER, "Software\\Python\\PythonCore\\3.10\\InstallPath" ) as key:
     python_path = winreg.QueryValueEx( key, "" )[ 0 ]
 
 # Find the location of pyinstaller
